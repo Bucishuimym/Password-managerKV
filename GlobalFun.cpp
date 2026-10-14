@@ -33,6 +33,74 @@ int uidCount() {                                                               /
     return UID;
 }
 
+int login(int& outRule) {                                                      //登录，成功写回权限令牌
+    userUid = 000;
+    string inputName, inputKey;
+    system("cls");
+    cout << "============== User Login ==============" << endl;
+
+    cout << "Enter user name: "; cin >> inputName;
+    cout << "Enter user key: "; cin >> inputKey;
+
+    string key = inputKey;      //输入的是明文，先加密再跟表里的密文比
+    if (!key.empty())
+        encryptDecrypt(&key[0]);
+
+    int i = LocateUserByUsers(inputName);   //先用函数按用户名定位
+    if (i == -1) {                          //先判查不到：i 是 -1 时不能拿去索引 users，会越界读到表外
+        cout << "\nUsername no found!" << endl;
+        system("pause");
+        return -1;
+    }
+    if (users[i].key != key) {
+        cout << "\nPassword error!" << endl;
+        system("pause");
+        return -1;
+    }
+    cout << "\nLogin Successful Hello," << users[i].name << "\n" << endl;
+    outRule = users[i].rule;
+    userUid = users[i].uid;
+    PrintLineUser(users[i]);    //登录成功，把这行用户信息打出来
+    system("pause");
+    return 1;
+}
+
+void signUp() {                                                                //注册新用户
+    system("cls");
+    if (userCount >= Max_User) {
+        cout << "Sorry! user max" << endl;
+        system("pause");
+        return;
+    }
+
+    string name, key;
+    cout << "============== Sign up ==============" << endl;
+    cout << "Enter new user name: ";
+    cin >> name;
+
+    if (LocateUserByUsers(name) != -1) {
+        cout << "该用户名已存在，注册失败！" << endl;
+        system("pause");
+        return;
+    }
+
+    cout << "Enter new user key: ";
+    cin >> key;
+    if (!key.empty())
+    {
+        encryptDecrypt(&key[0]);
+    }
+    users[userCount].name = name;
+    users[userCount].key = key;
+    users[userCount].rule = RULE_USER;
+    users[userCount].uid = uidCount();
+
+    userCount++;
+
+    cout << "Registration succeeded!" << endl;
+    system("pause");
+}
+
 void adminMenu() {                                                             //管理员菜单
     int choice;
     while (true) {
