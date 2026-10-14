@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="kvDoubleTry.vcxproj" Id="50e8334b-dbd2-4409-83c3-ea209bd33eb8" />
+</Solution>

@@ -1,0 +1,24 @@
+# 编译器配置与本地缓存
+.vs/
+*.vcxproj.user
+
+# 编译产物 (根据你的实际输出目录调整)
+kvDoubleTry/
+x64/
+Debug/
+Release/
+ipch/
+
+# 编译临时文件
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.idb
+*.log
+*.tlog
+
+# 注意：下面这些通常【不要】忽略，请确认！
+# *.sln       (如果是传统格式，不要忽略)
+# *.vcxproj   (不要忽略)
+# *.vcxproj.filters (不要忽略)
