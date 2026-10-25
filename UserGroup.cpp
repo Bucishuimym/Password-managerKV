@@ -11,10 +11,7 @@
 #include "UserGroup.h"
 #include "OverAllkv.h"
 #include "DLinkedList.h"
-#pragma comment(lib,"DLinkedList.lib")
-
-std::vector<UserGroup> usr;
-DoubleList<UserGroup> users(usr.data(), (int)Max_User);
+#pragma comment(lib,"DoubleLinkedList.lib")
 
 UserGroup::UserGroup() :name(), key(), uid(), rule() {}
 UserGroup::UserGroup(std::string _name, std::string _key, int _uid, int _rule) :

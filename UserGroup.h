@@ -15,7 +15,7 @@
 #include "UserGroup.h"
 #include "OverAllkv.h"
 #include "DLinkedList.h"
-#pragma comment(lib,"DLinkedList.lib")
+#pragma comment(lib,"DoubleLinkedList.lib")
 
 class UserGroup{
 private:
@@ -36,5 +36,8 @@ public:
     void SetUid(int uid);
     void SetRule(int rule);
 };
+
+extern std::vector<UserGroup> usr;
+extern DoubleList<UserGroup> users;
 #endif // !1
 

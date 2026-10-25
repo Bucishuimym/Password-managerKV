@@ -10,12 +10,13 @@
 #include <windows.h>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include "pwDataGroup.h"
 #include "UserGroup.h"
 #include "OverAllkv.h"
 #include "DLinkedList.h"
-#pragma comment(lib,"DLinkedList.lib")
+#pragma comment(lib,"DoubleLinkedList.lib")
 
 class pwDataGroup{
 private:
@@ -25,16 +26,19 @@ private:
     int uid;
 public:
     pwDataGroup();
-    pwDataGroup(std::string us, std::string k, std::string ur, int ui);
+    pwDataGroup(std::string _Username, std::string _key, std::string _url, int _uid);
     ~pwDataGroup();
     std::string GetUsername();
     std::string GetKey();
     std::string GetUrl();
     int GetUid();
-    void SetUsername();
-    void SetKey();
-    void SetUrl();
-    void SetUid();
+    void SetUsername( std::string _Username);
+    void SetKey(std::string _key);
+    void SetUrl(std::string _url);
+    void SetUid(int _uid);
 };
+
+extern std::vector<pwDataGroup> pw;
+extern DoubleList<pwDataGroup> pwdata;
 
 #endif // !PWDATAGROUP_H
