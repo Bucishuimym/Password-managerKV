@@ -20,6 +20,12 @@ int userUid = 000; //记录当前登录用户的UID，登出重置000
 const std::string USER_FILE = "users.txt";
 const std::string DATA_FILE = "data.txt";
 
+std::vector<pwDataGroup> pw;
+DoubleList<pwDataGroup> pwdata(nullptr,0);
+std::vector<UserGroup> usr;
+DoubleList<UserGroup> users(nullptr, 0);
+
+std::string getInput(const std::string& prompt);
 void initAdmin();                                                              //初始化管理员账号
 int login(int& outRule);                                                       //登录，成功把权限写回 outRule
 void signUp();                                                                 //注册新用户

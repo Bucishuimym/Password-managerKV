@@ -10,7 +10,7 @@
 #include "UserGroup.h"
 #include "OverAllkv.h"
 #include "DLinkedList.h"
-#pragma comment(lib,"DLinkedList.lib")
+#pragma comment(lib,"DoubleLinkedList.lib")
 
 using namespace std;
 

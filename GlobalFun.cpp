@@ -5,24 +5,31 @@
 #include <windows.h>
 #include <fstream>
 #include <sstream>
+#include <conio.h>
 
 #include "pwDataGroup.h"
 #include "UserGroup.h"
 #include "OverAllkv.h"
 #include "DLinkedList.h"
-#pragma comment(lib,"DLinkedList.lib")
+#pragma comment(lib,"DoubleLinkedList.lib")
 
 using namespace std;
 
 void initAdmin() {                                                             //初始化管理员账号
-    users[0].name = "admin";
-    users[0].key = "123";
-    users[0].rule = RULE_ADMIN;
-    users[0].uid = uidCount();
-    if (!users[0].key.empty())
-    {
-        encryptDecrypt(&users[0].key[0]);
+    UserGroup admin;
+    std::string key = "123";
+    if (!key.empty()) encryptDecrypt(&key[0]);    // 对字符串就地加密
+
+    admin.SetName("admin");
+    admin.SetKey(key);
+    admin.SetRule(RULE_ADMIN);
+    admin.SetUid(uidCount());
+
+    // 插入表头，失败则尾插兜底
+    if (!users.PushFront(admin)) {
+        users.PushBack(admin);
     }
+
     userCount = 1;
 }
 
@@ -33,6 +40,43 @@ int uidCount() {                                                               /
     return UID;
 }
 
+void LinuxLecture() {
+    cout << "Respect the privacy of others." << endl;
+    cout << "Think before you type." << endl;
+    cout << "With great power comes great responsibility." << endl;
+}
+
+std::string getInput(const std::string& prompt) {
+    std::cout << prompt;
+    std::string input;
+    int ch;
+    while (true) {
+        ch = _getch();
+        if (ch == '\r' || ch == '\n') {
+            std::cout << std::endl;
+            break;
+        }
+        if (ch == 8) { // backspace
+            if (!input.empty()) {
+                input.pop_back();
+                std::cout << "\b \b";
+            }
+        }
+        else if (ch >= 32 && ch <= 126) {
+            input.push_back((char)ch);
+            std::cout << '*';
+        }
+    }
+    return input;
+}
+
+void PrintLineUser(UserGroup& usr) {
+    cout <<"Name:" << usr.GetName() <<"ID" << usr.GetUid() << endl;
+    if (usr.GetRule() == RULE_ADMIN) {
+        cout << "Administrator account." << endl;
+    }
+}
+
 int login(int& outRule) {                                                      //登录，成功写回权限令牌
     userUid = 000;
     string inputName, inputKey;
@@ -40,64 +84,83 @@ int login(int& outRule) {                                                      /
     cout << "============== User Login ==============" << endl;
 
     cout << "Enter user name: "; cin >> inputName;
-    cout << "Enter user key: "; cin >> inputKey;
+    cout << "Enter user key: ";  cin >> inputKey;
 
-    string key = inputKey;      //输入的是明文，先加密再跟表里的密文比
-    if (!key.empty())
-        encryptDecrypt(&key[0]);
+    string key = inputKey;
+    if (!key.empty()) encryptDecrypt(&key[0]);
 
-    int i = LocateUserByUsers(inputName);   //先用函数按用户名定位
-    if (i == -1) {                          //先判查不到：i 是 -1 时不能拿去索引 users，会越界读到表外
+    auto p = users.FindIf([&](const UserGroup& u) { return u.GetName() == inputName; });
+    if (!p) {
         cout << "\nUsername no found!" << endl;
         system("pause");
         return -1;
     }
-    if (users[i].key != key) {
+    if (p->data.GetKey() != key) {
         cout << "\nPassword error!" << endl;
         system("pause");
         return -1;
     }
-    cout << "\nLogin Successful Hello," << users[i].name << "\n" << endl;
-    outRule = users[i].rule;
-    userUid = users[i].uid;
-    PrintLineUser(users[i]);    //登录成功，把这行用户信息打出来
+
+    cout << "\nLogin Successful Hello," << p->data.GetName() << "\n" << endl;
+    outRule = p->data.GetRule();
+    userUid = p->data.GetUid();
+    PrintLineUser(p->data);
     system("pause");
+
+    if (p->data.GetRule() == RULE_ADMIN) {
+        LinuxLecture();
+        system("pause");
+        system("cls");
+    }
+
     return 1;
 }
 
-void signUp() {                                                                //注册新用户
+void signUp() {                                                                //注册
     system("cls");
     if (userCount >= Max_User) {
-        cout << "Sorry! user max" << endl;
+        std::cout << "Sorry! user max" << std::endl;
         system("pause");
         return;
     }
 
-    string name, key;
-    cout << "============== Sign up ==============" << endl;
-    cout << "Enter new user name: ";
-    cin >> name;
+    std::string name;
+    std::cout << "============== Sign up ==============" << std::endl;
+    std::cout << "Enter new user name: ";
+    std::cin >> name;
 
-    if (LocateUserByUsers(name) != -1) {
-        cout << "该用户名已存在，注册失败！" << endl;
+    if (users.FindIf([&](const UserGroup& u) { return u.GetName() == name; })) {
+        std::cout << "Username already exisit！" << std::endl;
         system("pause");
         return;
     }
 
-    cout << "Enter new user key: ";
-    cin >> key;
-    if (!key.empty())
-    {
-        encryptDecrypt(&key[0]);
+    std::string key = getInput("Enter new user key: ");
+    std::string k = getInput("Again: ");
+    if (key != k) {
+        std::cout << "Passwerd error! try again." << std::endl;
+        system("pause");
+        return;
     }
-    users[userCount].name = name;
-    users[userCount].key = key;
-    users[userCount].rule = RULE_USER;
-    users[userCount].uid = uidCount();
+
+    if (!key.empty()) encryptDecrypt(&key[0]);
+
+    UserGroup newUser;
+    newUser.SetName(name);
+    newUser.SetKey(key);
+    newUser.SetRule(RULE_USER);
+    newUser.SetUid(uidCount());
+
+    if (!users.PushFront(newUser)) {
+        if (!users.PushBack(newUser)) {
+            std::cerr << "Failed to add user to list." << std::endl;
+            system("pause");
+            return;
+        }
+    }
 
     userCount++;
-
-    cout << "Registration succeeded!" << endl;
+    std::cout << "Registration succeeded!" << std::endl;
     system("pause");
 }
 
@@ -114,7 +177,7 @@ void adminMenu() {                                                             /
         cout << "| [6].按位置/UID删除用户数据                    |" << endl;
         cout << "| [7].打印全部密码数据                          |" << endl;
         cout << "| [8].打印全部用户数据                          |" << endl;
-        cout << "| [9].退出登录                                  |" << endl;
+        cout << "| [9].退出登录     799                             |" << endl;
         cout << "+-----------------------------------------------+" << endl;
         cout << "Enter your choice: ";
         cin >> choice;      //输入要放在循环里，不然 choice 一直是第一次的值，菜单会死循环
