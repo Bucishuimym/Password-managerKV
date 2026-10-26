@@ -23,3 +23,6 @@ ipch/
 # *.sln       (如果是传统格式，不要忽略)
 # *.vcxproj   (不要忽略)
 # *.vcxproj.filters (不要忽略)
+
+data.txt
+users.txt

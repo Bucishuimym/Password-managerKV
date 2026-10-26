@@ -1,4 +1,4 @@
-#include <cstring>
+﻿#include <cstring>
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -6,6 +6,8 @@
 #include <fstream>
 #include <sstream>
 #include <conio.h>
+#include <io.h>     //_isatty
+#include <cstdio>   //_fileno(stdin)
 
 #include "pwDataGroup.h"
 #include "UserGroup.h"
@@ -49,6 +51,13 @@ void LinuxLecture() {
 std::string getInput(const std::string& prompt) {
     std::cout << prompt;
     std::string input;
+
+    //输入被重定向（管道/文件）时没有控制台按键可读，_getch 会一直返回 -1，退回 cin
+    if (!_isatty(_fileno(stdin))) {
+        std::getline(std::cin >> std::ws, input);
+        return input;
+    }
+
     int ch;
     while (true) {
         ch = _getch();
@@ -70,7 +79,7 @@ std::string getInput(const std::string& prompt) {
     return input;
 }
 
-void PrintLineUser(UserGroup& usr) {
+void PrintLineUser(const UserGroup& usr) {
     cout <<"Name:" << usr.GetName() <<"ID" << usr.GetUid() << endl;
     if (usr.GetRule() == RULE_ADMIN) {
         cout << "Administrator account." << endl;
@@ -108,6 +117,7 @@ int login(int& outRule) {                                                      /
     system("pause");
 
     if (p->data.GetRule() == RULE_ADMIN) {
+        system("cls");
         LinuxLecture();
         system("pause");
         system("cls");
@@ -151,12 +161,11 @@ void signUp() {                                                                /
     newUser.SetRule(RULE_USER);
     newUser.SetUid(uidCount());
 
-    if (!users.PushFront(newUser)) {
-        if (!users.PushBack(newUser)) {
-            std::cerr << "Failed to add user to list." << std::endl;
-            system("pause");
-            return;
-        }
+    //新用户尾插：admin 要一直待在表头，case 6 的管理员保护是按"第 1 条"判的
+    if (!users.PushBack(newUser)) {
+        std::cerr << "Failed to add user to list." << std::endl;
+        system("pause");
+        return;
     }
 
     userCount++;
@@ -177,10 +186,10 @@ void adminMenu() {                                                             /
         cout << "| [6].按位置/UID删除用户数据                    |" << endl;
         cout << "| [7].打印全部密码数据                          |" << endl;
         cout << "| [8].打印全部用户数据                          |" << endl;
-        cout << "| [9].退出登录     799                             |" << endl;
+        cout << "| [9].退出登录                                  |" << endl;
         cout << "+-----------------------------------------------+" << endl;
         cout << "Enter your choice: ";
-        cin >> choice;      //输入要放在循环里，不然 choice 一直是第一次的值，菜单会死循环
+        cin >> choice;      
         if (!cin) {
             bool atEof = cin.eof();     //要在 clear() 之前判断，clear() 会把 eofbit 一起清掉
             cin.clear();
@@ -199,8 +208,7 @@ void adminMenu() {                                                             /
             cin >> id;
             int pos = LocatePasswordBySeq(id);
             if (pos != -1) {
-                DoubleList<pwDataGroup>::Node* p;
-                 p=pwdata.LocateByUid(id);
+                auto* p = pwdata.LocateByUid(id);   //按 UID 直接拿到结点
                 string showkey = p->data.GetKey();
                 if (!showkey.empty())
                     encryptDecrypt(&showkey[0]);
@@ -218,12 +226,14 @@ void adminMenu() {                                                             /
             cin >> name;
             int pos = LocateUserByUsers(name);
             if (pos != -1) {
-                string showkey = users[pos].key;
+                UserGroup u;
+                users.Get(pos + 1, u);      //定位给的是下标，链表的位序从 1 开始
+                string showkey = u.GetKey();
                 if (!showkey.empty())
                     encryptDecrypt(&showkey[0]);
-                cout << "|————" << users[pos].name << "\n"
-                    << "  |——key:" << toHex(users[pos].key) << "(" << showkey << ")" << endl
-                    << "  |_" << users[pos].uid << endl
+                cout << "|————" << u.GetName() << "\n"
+                    << "  |——key:" << toHex(u.GetKey()) << "(" << showkey << ")" << endl
+                    << "  |_" << u.GetUid() << endl
                     << endl;
             }
             system("pause");
@@ -237,11 +247,19 @@ void adminMenu() {                                                             /
 
             pwDataGroup item;
             cout << "Enter your data(name;URL;key): ";
-            item.input();
+            item.inPut();
 
-            item.SetUid(userUid);
-            encryptDecrypt(item.GetKey().data());
-            Insert(n,item);
+            item.SetUid(userUid);               //UID 按当前登录用户自动匹配
+            string key = item.GetKey();         //GetKey 返回的是拷贝，加密完要写回去
+            if (!key.empty())
+                encryptDecrypt(&key[0]);
+            item.SetKey(key);
+
+            //输的还是以前顺序表的 0 基下标，链表的位序从 1 开始，所以要 +1
+            if (pwdata.Insert(n + 1, item))
+                pasCount++;
+            else
+                cout << "插入失败：位置非法或数据表已满！" << endl;
             break;
         }
         case 4: { //[4].InsertUserdata
@@ -253,8 +271,16 @@ void adminMenu() {                                                             /
             int index;
             cout << "Input index: ";
             cin >> index;
-            DoubleList<pwDataGroup>::Node* p;
-            pwDataGroup x = Delete(p, pasCount, index);
+            pwDataGroup x;
+            //旧的 Delete 在 index > 9000 时把 index 当 UID 用，这里保留这个行为
+            bool ok = (index > 9000) ? pwdata.DeleteByUid(index, x)
+                : pwdata.DeleteByPos(index + 1, x);
+            if (!ok) {
+                cout << "删除失败：位序/UID 无效！" << endl;
+                system("pause");
+                break;
+            }
+            pasCount--;
             string showkey = x.GetKey();
             if (!showkey.empty())
                 encryptDecrypt(&showkey[0]);
@@ -283,30 +309,29 @@ void adminMenu() {                                                             /
                 break;
             }
 
-            //index > 9000 时 Delete 内部按 UID 删除，否则按位置删
-            pwDataGroup deleted = DeleteByUid(users, index);
-            if (deleted.GetUid() == 0) {     //删除失败时返回的是值初始化的空记录
+            //index > 9000 时按 UID 删除，否则按位置删（位序要 +1）
+            UserGroup deleted;
+            bool ok = (index > 9000) ? users.DeleteByUid(index, deleted)
+                : users.DeleteByPos(index + 1, deleted);
+            if (!ok) {
+                cout << "没找到要删除的用户！" << endl;
                 system("pause");
                 break;
             }
+            userCount--;
 
             cout << "\n用户删除成功，被删除的用户数据：" << endl;
             PrintLineUser(deleted); //
 
-            //级联删除该 UID 在数据组里缓存的全部数据
+            //级联删除该 UID 在数据组里缓存的全部数据：
+            //这里不用 DeleteAllByUid，因为要把删掉的每条都打出来，得自己接住 out 参数
             int removed = 0;
-            for (int i = 0; i < pasCount; ) {
-                DoubleList<pwDataGroup>::Node* p;
-                if (p->data.GetUid() == deleted.GetUid()) {
-                    pwDataGroup d = Delete(p, pasCount, i);
-                    PrintLineData(d);
-                    removed++;
-                    //这里不能再写 i++：删掉后 i 位置已经换成了后面的元素，i 自增会跳过一个
-                }
-                else {
-                    p = p->next;
-                }
+            pwDataGroup d;
+            while (pwdata.DeleteByUid(deleted.GetUid(), d)) {
+                PrintLineData(d);
+                removed++;
             }
+            pasCount -= removed;
 
             if (removed == 0)
                 cout << "该用户在数据组中没有缓存数据。" << endl;
@@ -389,8 +414,11 @@ void userMenu() {                                                              /
             int pos = LocateUserByUid(userUid);     //只认全局变量里的 UID，不让输别人
             if (pos == -1)
                 cout << "找不到当前登录用户！" << endl;
-            else
-                PrintLineUser(users[pos]);
+            else {
+                UserGroup u;
+                users.Get(pos + 1, u);  //定位给的是下标，链表的位序从 1 开始
+                PrintLineUser(u);
+            }
             system("pause");
             break;
         }
@@ -404,17 +432,22 @@ void userMenu() {                                                              /
             cout << "Enter your data(name;URL;key): ";
             item.inPut();
             item.SetUid(userUid);             //UID 按全局变量自动匹配，不让用户填
-            encryptDecrypt(item.GetKey().data());   //写入表之前先加密
-            DoubleList<pwDataGroup>::Node* p;
-            Addend(p, pasCount, item, Max_Password);
-            cout << "插入成功！" << endl;
+            string key = item.GetKey();       //GetKey 返回的是拷贝，加密完要写回去
+            if (!key.empty())
+                encryptDecrypt(&key[0]);      //写入表之前先加密
+            item.SetKey(key);
+            if (pwdata.PushBack(item)) {      //尾插，表满了 PushBack 返回 false
+                pasCount++;
+                cout << "插入成功！" << endl;
+            }
+            else
+                cout << "插入失败：数据表已满！" << endl;
             system("pause");
             break;
         }
         case 4: {  //[4].按位置删除我的数据
             int seq = 0;
             cout << "Input index (列表里的序号): ";
-            DoubleList<pwDataGroup>::Node* p;
             if (!(cin >> seq)) {
                 cin.clear();
                 cin.ignore(1000, '\n');
@@ -429,12 +462,18 @@ void userMenu() {                                                              /
                 system("pause");
                 break;
             }
-            if (p->data.GetUid() != userUid) {  //兜底：还原出来的必须还是自己的
+            pwDataGroup mine;
+            if (!pwdata.Get(index + 1, mine) || mine.GetUid() != userUid) {  //兜底：还原出来的必须还是自己的
                 cout << "只能删除自己的数据！" << endl;
                 system("pause");
                 break;
             }
-            pwDataGroup x = Delete(p, pasCount, index);
+            pwDataGroup x;
+            if (!pwdata.DeleteByPos(index + 1, x)) {    //位序上面刚验过，删得掉
+                system("pause");
+                break;
+            }
+            pasCount--;
             cout << "删除成功：" << endl;
             PrintLineData(x, false);        //不显示 UID
             system("pause");
@@ -446,31 +485,26 @@ void userMenu() {                                                              /
             return;
         }
         case 6: {  //[6].注销账号
-            int index;
-            index = LocateUserByUid(userUid);
-            pwDataGroup deleted = Delete(users, userCount, index);
-            if (deleted.GetUid() == 0) {     //删除失败时返回的是值初始化的空记录
+            //以前是先按 UID 定位再按位置删，链表直接按 UID 删就行
+            UserGroup deleted;
+            if (!users.DeleteByUid(userUid, deleted)) {
                 system("pause");
                 break;
             }
+            userCount--;
 
             cout << "\n 注销成功，被注销的用户数据：" << endl;
             PrintLineUser(deleted); //
 
-            //级联删除该 UID 在数据组里缓存的全部数据
+            //级联删除该 UID 在数据组里缓存的全部数据：
+            //这里不用 DeleteAllByUid，因为要把删掉的每条都打出来，得自己接住 out 参数
             int removed = 0;
-            for (int i = 0; i < pasCount; ) {
-                DoubleList<pwDataGroup>::Node* p;
-                if (p->data.GetUid() == deleted.GetUid()) {
-                    pwDataGroup d = Delete(p, pasCount, i);
-                    PrintLineData(d);
-                    removed++;
-                    //这里不能再写 i++：删掉后 i 位置已经换成了后面的元素，i 自增会跳过一个
-                }
-                else {
-                    p = p->next;
-                }
+            pwDataGroup d;
+            while (pwdata.DeleteByUid(deleted.GetUid(), d)) {
+                PrintLineData(d);
+                removed++;
             }
+            pasCount -= removed;
 
             if (removed == 0)
                 cout << "该用户在数据组中没有缓存数据。" << endl;
@@ -545,15 +579,12 @@ void outFile() {                                                               /
         system("pause");
         return;
     }
-    DoubleList<UserGroup>::Node* p;
     //分隔符用 \t：name / URL 都是 cin >> 读进来的，不可能含空白，所以不会跟分隔符撞
     //key 一律写成 hex（toHex）：密文是异或后的裸字节，里面可能正好是分隔符乃至 0x0A/0x0D（明文 u / r）
-    for (int i = 0; i < userCount; ++i) {
+    for (auto* p = users.Begin(); !users.AtEnd(p); p = users.Next(p)) {
         outUser << p->data.GetName() << '\t' << toHex(p->data.GetKey()) << '\t' << p->data.GetRule()<< '\t' << p->data.GetUid() << '\n';
-        p = p->next;
     }
-    DoubleList<pwDataGroup>::Node* q;
-    for (int i = 0; i < pasCount; ++i) {
+    for (auto* q = pwdata.Begin(); !pwdata.AtEnd(q); q = pwdata.Next(q)) {
         outData << q->data.GetUsername() << '\t' << q->data.GetUrl() << '\t' << toHex(q->data.GetKey()) << '\t' << q->data.GetUid() << '\n';
     }
 
@@ -571,8 +602,9 @@ void inFile() {                                                                /
 
     string line;    //从文件中获取用户数据
     if (inUser.is_open()) {
+        users.Clear();                  //重读之前先清空，不然会叠在旧数据后面
         userCount = 0;
-        while (getline(inUser, line) && userCount < Max_User) {
+        while (getline(inUser, line)) {
             if (line.empty())continue;
             stringstream ss(line);
 
@@ -582,20 +614,23 @@ void inFile() {                                                                /
             getline(ss, iRule, '\t');
             getline(ss, iUid, '\t');
 
-            users[userCount].name = iName;
-            users[userCount].key = fromHex(iKey);   //文件里是 hex，先还原成密文字节
-            users[userCount].rule = atoi(iRule.c_str());
-            users[userCount].uid = atoi(iUid.c_str());
+            UserGroup u;
+            u.SetName(iName);
+            u.SetKey(fromHex(iKey));    //文件里是 hex，先还原成密文字节
+            u.SetRule(atoi(iRule.c_str()));
+            u.SetUid(atoi(iUid.c_str()));
 
+            if (!users.PushBack(u))
+                break;                  //表满了就不再收，等价于以前的 userCount < Max_User
             userCount++;
         }
         inUser.close();
     }
 
     if (inData.is_open()) {
+        pwdata.Clear();                 //同用户表，重读之前先清空
         pasCount = 0;
-        while (getline(inData, line) && pasCount < Max_Password) {
-            DoubleList<pwDataGroup>::Node* p;
+        while (getline(inData, line)) {
             if (line.empty())continue;
             stringstream ss(line);
 
@@ -605,11 +640,14 @@ void inFile() {                                                                /
             getline(ss, iKey, '\t');
             getline(ss, iUid, '\t');
 
-            p->data.GetUsername() = iUsername;
-            p->data.GetUrl() = iUrl;
-            p->data.GetKey() = fromHex(iKey);    //文件里是 hex，先还原成密文字节
-            p->data.GetUid() = atoi(iUid.c_str());
-            p = p->next;
+            pwDataGroup d;
+            d.SetUsername(iUsername);
+            d.SetUrl(iUrl);
+            d.SetKey(fromHex(iKey));    //文件里是 hex，先还原成密文字节
+            d.SetUid(atoi(iUid.c_str()));
+
+            if (!pwdata.PushBack(d))
+                break;                  //表满了就不再收，等价于以前的 pasCount < Max_Password
             pasCount++;
         }
         inData.close();

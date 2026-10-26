@@ -1,4 +1,4 @@
-#include <cstring>
+﻿#include <cstring>
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -18,13 +18,12 @@ pwDataGroup::pwDataGroup(std::string _Username, std::string _key, std::string _u
 pwDataGroup::~pwDataGroup() = default;
 void pwDataGroup::input() { std::cin >> Username >> key >> url >> uid; }
 void pwDataGroup::inPut(){ std::cin >>Username >>url >>key; }
-void pwDataGroup::output(){std::cout<<}
 
-std::string pwDataGroup::GetUsername() { return Username; }
-std::string pwDataGroup::GetKey() { return key; }
-std::string pwDataGroup::GetUrl() { return url; }
-int pwDataGroup::GetUid() { return uid; }
+std::string pwDataGroup::GetUsername() const { return Username; }
+std::string pwDataGroup::GetKey() const { return key; }
+std::string pwDataGroup::GetUrl() const { return url; }
+int pwDataGroup::GetUid() const { return uid; }
 void pwDataGroup::SetUsername(std::string _Username) { Username = std::move(_Username); }
 void pwDataGroup::SetKey(std::string _key) { key = std::move(_key); }
 void pwDataGroup::SetUrl(std::string _url) { url = std::move(_url); }
-void pwDataGroup::SetUid(int _uid) { uid = std::move(uid); }
+void pwDataGroup::SetUid(int _uid) { uid = _uid; }

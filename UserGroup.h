@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef USERGROUP_H
 #define USERGROUP_H
@@ -11,9 +11,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "pwDataGroup.h"
-#include "UserGroup.h"
-#include "OverAllkv.h"
 #include "DLinkedList.h"
 #pragma comment(lib,"DoubleLinkedList.lib")
 
@@ -37,7 +34,7 @@ public:
     void SetRule(int rule);
 };
 
-extern std::vector<UserGroup> usr;
+//用户表定义在 OverAllkv.cpp 里
 extern DoubleList<UserGroup> users;
 #endif // !1
 
