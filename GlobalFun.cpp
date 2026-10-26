@@ -199,13 +199,15 @@ void adminMenu() {                                                             /
             cin >> id;
             int pos = LocatePasswordBySeq(id);
             if (pos != -1) {
-                string showkey = Slist[pos].key;
+                DoubleList<pwDataGroup>::Node* p;
+                 p=pwdata.LocateByUid(id);
+                string showkey = p->data.GetKey();
                 if (!showkey.empty())
                     encryptDecrypt(&showkey[0]);
-                cout << "|————" << Slist[pos].Username << "\n"
-                    << "  |——" << Slist[pos].URL << "\n"
-                    << "  |——key:" << toHex(Slist[pos].key) << "(" << showkey << ")" << "\n"
-                    << "  |_" << Slist[pos].UID << endl
+                cout << "|————" << p->data.GetUsername()<< "\n"
+                    << "  |——" << p->data.GetUrl() << "\n"
+                    << "  |——key:" << toHex(p->data.GetKey()) << "(" << showkey << ")" << "\n"
+                    << "  |_" << p->data.GetUid() << endl
                     << endl;
             }
             system("pause");
@@ -227,16 +229,19 @@ void adminMenu() {                                                             /
             system("pause");
             break;
         }
-        case 3: {  //[3].InsertData
+        case 3: { // [3]. InsertData
             int n;
             cout << "Input number of pos: ";
             cin >> n;
-            PasswordItem item;
+            cin.ignore();   // 吃掉残留换行
+
+            pwDataGroup item;
             cout << "Enter your data(name;URL;key): ";
-            cin >> item.Username >> item.URL >> item.key;
-            item.UID = userUid;
-            encryptDecrypt(&item.key[0]);
-            Insert(Slist, pasCount, n, item, Max_Password);
+            item.input();
+
+            item.SetUid(userUid);
+            encryptDecrypt(item.GetKey().data());
+            Insert(n,item);
             break;
         }
         case 4: { //[4].InsertUserdata
@@ -248,14 +253,15 @@ void adminMenu() {                                                             /
             int index;
             cout << "Input index: ";
             cin >> index;
-            PasswordItem x = Delete(Slist, pasCount, index);
-            string showkey = x.key;
+            DoubleList<pwDataGroup>::Node* p;
+            pwDataGroup x = Delete(p, pasCount, index);
+            string showkey = x.GetKey();
             if (!showkey.empty())
                 encryptDecrypt(&showkey[0]);
-            cout << "Username:" << x.Username << "/"
-                << "URL:" << x.URL << "/"
-                << "key:" << toHex(x.key) << "(" << showkey << ")" << "/"
-                << "UID:" << x.UID << "Delete succeeded!\n";
+            cout << "Username:" << x.GetUsername() << "/"
+                << "URL:" << x.GetUrl()<< "/"
+                << "key:" << toHex(x.GetKey()) << "(" << showkey << ")" << "/"
+                << "UID:" << x.GetUid() << "Delete succeeded!\n";
             system("pause");
             break;
         }
@@ -278,8 +284,8 @@ void adminMenu() {                                                             /
             }
 
             //index > 9000 时 Delete 内部按 UID 删除，否则按位置删
-            User deleted = Delete(users, userCount, index);
-            if (deleted.uid == 0) {     //删除失败时返回的是值初始化的空记录
+            pwDataGroup deleted = DeleteByUid(users, index);
+            if (deleted.GetUid() == 0) {     //删除失败时返回的是值初始化的空记录
                 system("pause");
                 break;
             }
@@ -290,14 +296,15 @@ void adminMenu() {                                                             /
             //级联删除该 UID 在数据组里缓存的全部数据
             int removed = 0;
             for (int i = 0; i < pasCount; ) {
-                if (Slist[i].UID == deleted.uid) {
-                    PasswordItem d = Delete(Slist, pasCount, i);
+                DoubleList<pwDataGroup>::Node* p;
+                if (p->data.GetUid() == deleted.GetUid()) {
+                    pwDataGroup d = Delete(p, pasCount, i);
                     PrintLineData(d);
                     removed++;
                     //这里不能再写 i++：删掉后 i 位置已经换成了后面的元素，i 自增会跳过一个
                 }
                 else {
-                    i++;
+                    p = p->next;
                 }
             }
 
@@ -307,7 +314,7 @@ void adminMenu() {                                                             /
                 cout << "共删除 " << removed << " 条数据。" << endl;
 
             //删掉的正好是当前登录用户时，登录态一起重置
-            if (userUid == deleted.uid) {
+            if (userUid == deleted.GetUid()) {
                 userUid = 000;
                 ruletoken = -1;
             }
@@ -393,12 +400,13 @@ void userMenu() {                                                              /
             break;
         }
         case 3: {  //[3].插入我的密码数据
-            PasswordItem item;
+            pwDataGroup item;
             cout << "Enter your data(name;URL;key): ";
-            cin >> item.Username >> item.URL >> item.key;
-            item.UID = userUid;             //UID 按全局变量自动匹配，不让用户填
-            encryptDecrypt(&item.key[0]);   //写入表之前先加密
-            Addend(Slist, pasCount, item, Max_Password);
+            item.inPut();
+            item.SetUid(userUid);             //UID 按全局变量自动匹配，不让用户填
+            encryptDecrypt(item.GetKey().data());   //写入表之前先加密
+            DoubleList<pwDataGroup>::Node* p;
+            Addend(p, pasCount, item, Max_Password);
             cout << "插入成功！" << endl;
             system("pause");
             break;
@@ -406,6 +414,7 @@ void userMenu() {                                                              /
         case 4: {  //[4].按位置删除我的数据
             int seq = 0;
             cout << "Input index (列表里的序号): ";
+            DoubleList<pwDataGroup>::Node* p;
             if (!(cin >> seq)) {
                 cin.clear();
                 cin.ignore(1000, '\n');
@@ -420,12 +429,12 @@ void userMenu() {                                                              /
                 system("pause");
                 break;
             }
-            if (Slist[index].UID != userUid) {  //兜底：还原出来的必须还是自己的
+            if (p->data.GetUid() != userUid) {  //兜底：还原出来的必须还是自己的
                 cout << "只能删除自己的数据！" << endl;
                 system("pause");
                 break;
             }
-            PasswordItem x = Delete(Slist, pasCount, index);
+            pwDataGroup x = Delete(p, pasCount, index);
             cout << "删除成功：" << endl;
             PrintLineData(x, false);        //不显示 UID
             system("pause");
@@ -439,8 +448,8 @@ void userMenu() {                                                              /
         case 6: {  //[6].注销账号
             int index;
             index = LocateUserByUid(userUid);
-            User deleted = Delete(users, userCount, index);
-            if (deleted.uid == 0) {     //删除失败时返回的是值初始化的空记录
+            pwDataGroup deleted = Delete(users, userCount, index);
+            if (deleted.GetUid() == 0) {     //删除失败时返回的是值初始化的空记录
                 system("pause");
                 break;
             }
@@ -451,14 +460,15 @@ void userMenu() {                                                              /
             //级联删除该 UID 在数据组里缓存的全部数据
             int removed = 0;
             for (int i = 0; i < pasCount; ) {
-                if (Slist[i].UID == deleted.uid) {
-                    PasswordItem d = Delete(Slist, pasCount, i);
+                DoubleList<pwDataGroup>::Node* p;
+                if (p->data.GetUid() == deleted.GetUid()) {
+                    pwDataGroup d = Delete(p, pasCount, i);
                     PrintLineData(d);
                     removed++;
                     //这里不能再写 i++：删掉后 i 位置已经换成了后面的元素，i 自增会跳过一个
                 }
                 else {
-                    i++;
+                    p = p->next;
                 }
             }
 
@@ -468,7 +478,7 @@ void userMenu() {                                                              /
                 cout << "共删除 " << removed << " 条数据。" << endl;
 
             //登录态一起重置
-            if (userUid == deleted.uid) {
+            if (userUid == deleted.GetUid()) {
                 userUid = 000;
                 ruletoken = -1;
             }
@@ -535,15 +545,16 @@ void outFile() {                                                               /
         system("pause");
         return;
     }
-
+    DoubleList<UserGroup>::Node* p;
     //分隔符用 \t：name / URL 都是 cin >> 读进来的，不可能含空白，所以不会跟分隔符撞
     //key 一律写成 hex（toHex）：密文是异或后的裸字节，里面可能正好是分隔符乃至 0x0A/0x0D（明文 u / r）
     for (int i = 0; i < userCount; ++i) {
-        outUser << users[i].name << '\t' << toHex(users[i].key) << '\t' << users[i].rule << '\t' << users[i].uid << '\n';
+        outUser << p->data.GetName() << '\t' << toHex(p->data.GetKey()) << '\t' << p->data.GetRule()<< '\t' << p->data.GetUid() << '\n';
+        p = p->next;
     }
-
+    DoubleList<pwDataGroup>::Node* q;
     for (int i = 0; i < pasCount; ++i) {
-        outData << Slist[i].Username << '\t' << Slist[i].URL << '\t' << toHex(Slist[i].key) << '\t' << Slist[i].UID << '\n';
+        outData << q->data.GetUsername() << '\t' << q->data.GetUrl() << '\t' << toHex(q->data.GetKey()) << '\t' << q->data.GetUid() << '\n';
     }
 
     outUser.close();
@@ -584,6 +595,7 @@ void inFile() {                                                                /
     if (inData.is_open()) {
         pasCount = 0;
         while (getline(inData, line) && pasCount < Max_Password) {
+            DoubleList<pwDataGroup>::Node* p;
             if (line.empty())continue;
             stringstream ss(line);
 
@@ -593,11 +605,11 @@ void inFile() {                                                                /
             getline(ss, iKey, '\t');
             getline(ss, iUid, '\t');
 
-            Slist[pasCount].Username = iUsername;
-            Slist[pasCount].URL = iUrl;
-            Slist[pasCount].key = fromHex(iKey);    //文件里是 hex，先还原成密文字节
-            Slist[pasCount].UID = atoi(iUid.c_str());
-
+            p->data.GetUsername() = iUsername;
+            p->data.GetUrl() = iUrl;
+            p->data.GetKey() = fromHex(iKey);    //文件里是 hex，先还原成密文字节
+            p->data.GetUid() = atoi(iUid.c_str());
+            p = p->next;
             pasCount++;
         }
         inData.close();

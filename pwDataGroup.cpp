@@ -16,6 +16,9 @@
 pwDataGroup::pwDataGroup() :Username(), key(), url(), uid() {}
 pwDataGroup::pwDataGroup(std::string _Username, std::string _key, std::string _url, int _uid) :Username(_Username), key(_key), url(_url), uid(_uid){}
 pwDataGroup::~pwDataGroup() = default;
+void pwDataGroup::input() { std::cin >> Username >> key >> url >> uid; }
+void pwDataGroup::inPut(){ std::cin >>Username >>url >>key; }
+void pwDataGroup::output(){std::cout<<}
 
 std::string pwDataGroup::GetUsername() { return Username; }
 std::string pwDataGroup::GetKey() { return key; }

@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="GlobalFun.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="OverAllkv.cpp" />
     <ClCompile Include="pwDataGroup.cpp" />
     <ClCompile Include="UserGroup.cpp" />
   </ItemGroup>

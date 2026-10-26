@@ -36,6 +36,8 @@ public:
     void SetKey(std::string _key);
     void SetUrl(std::string _url);
     void SetUid(int _uid);
+    void input();
+    void inPut();
 };
 
 extern std::vector<pwDataGroup> pw;
