@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef PWDATAGROUP_H
 #define PWDATAGROUP_H
@@ -12,9 +12,6 @@
 #include <sstream>
 #include <vector>
 
-#include "pwDataGroup.h"
-#include "UserGroup.h"
-#include "OverAllkv.h"
 #include "DLinkedList.h"
 #pragma comment(lib,"DoubleLinkedList.lib")
 
@@ -28,10 +25,11 @@ public:
     pwDataGroup();
     pwDataGroup(std::string _Username, std::string _key, std::string _url, int _uid);
     ~pwDataGroup();
-    std::string GetUsername();
-    std::string GetKey();
-    std::string GetUrl();
-    int GetUid();
+    //取值的接口都加 const：链表按字段查、打印 const& 记录时都要用
+    std::string GetUsername() const;
+    std::string GetKey() const;
+    std::string GetUrl() const;
+    int GetUid() const;
     void SetUsername( std::string _Username);
     void SetKey(std::string _key);
     void SetUrl(std::string _url);
@@ -40,7 +38,7 @@ public:
     void inPut();
 };
 
-extern std::vector<pwDataGroup> pw;
+//密码数据表定义在 OverAllkv.cpp 里
 extern DoubleList<pwDataGroup> pwdata;
 
 #endif // !PWDATAGROUP_H

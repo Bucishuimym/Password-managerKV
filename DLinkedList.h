@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef DLINKEDLIST_H
 #define DLINKEDLIST_H

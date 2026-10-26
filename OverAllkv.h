@@ -1,29 +1,32 @@
-#pragma once
+﻿#pragma once
 #ifndef OVERALLKV_H
 #define OVERALLKV_H
 
 #include <string>
 #include <iostream>
+
+#include "DLinkedList.h"
 #include "pwDataGroup.h"
 #include "UserGroup.h"
+
+#include "DoubleLinkedList/DoubleLinkedList.cpp"	//模板实现得跟调用方一起编译，链表的方法都在这里
 
 const int Max_User = 1000;
 const int Max_Password = 1000;
 const int RULE_ADMIN = 2;
 const int RULE_USER = 1;
-int userCount = 0;  //用户数量
-int pasCount = 0;  //表长度
 
-int ruletoken = -1;  //当前登录用户的权限，-1 表示未登录
-int userUid = 000; //记录当前登录用户的UID，登出重置000
+extern int userCount;  //用户数量
+extern int pasCount;   //表长度
+extern int ruletoken;  //当前登录用户的权限，-1 表示未登录
+extern int userUid;    //记录当前登录用户的UID，登出重置000
 
 const std::string USER_FILE = "users.txt";
 const std::string DATA_FILE = "data.txt";
 
-std::vector<pwDataGroup> pw;
-DoubleList<pwDataGroup> pwdata(nullptr,0);
-std::vector<UserGroup> usr;
-DoubleList<UserGroup> users(nullptr, 0);
+//两张表，定义在 OverAllkv.cpp；链表自己带容量上限，满了 PushBack / Insert 返回 false
+extern DoubleList<UserGroup> users;
+extern DoubleList<pwDataGroup> pwdata;
 
 std::string getInput(const std::string& prompt);
 void initAdmin();                                                              //初始化管理员账号
@@ -42,11 +45,11 @@ void outFile();                                                                /
 void inFile();                                                                 //将数据从文件读入
 
 int Length();                                                                  //返回密码表长度
-static int LocatePasswordBySeq(const std::string& username);                   //仅声明、暂无定义（重载：按用户名查密码表）
-static int LocateUserByUsers(const std::string& username);                     //按用户名在用户组查找，找不到返回 -1
-static int LocateUserByUid(int uid);                                           //按 UID 在用户组查找，找不到返回 -1
-static int LocatePasswordBySeq(const int& ID);                                 //按 UID 在密码表查找，找不到返回 -1
-static int LocateMyDataBySeq(int seq);                                         //我的第 seq 条 → 表里绝对下标
+int LocatePasswordBySeq(const std::string& username);                          //仅声明、暂无定义（重载：按用户名查密码表）
+int LocateUserByUsers(const std::string& username);                            //按用户名在用户组查找，找不到返回 -1
+int LocateUserByUid(int uid);                                                  //按 UID 在用户组查找，找不到返回 -1
+int LocatePasswordBySeq(const int& ID);                                        //按 UID 在密码表查找，找不到返回 -1
+int LocateMyDataBySeq(int seq);                                                //我的第 seq 条 → 表里绝对下标
 int PasswordData(int index);                                                   //仅声明、暂无定义（实际用的是 getPasswordData）
 int Empty();                                                                   //密码表是否为空（空返回 1）
 void PrintLineData(const pwDataGroup& item, bool showUid = true);              //打印一行密码数据
