@@ -43,9 +43,10 @@ int uidCount() {                                                               /
 }
 
 void LinuxLecture() {
-    cout << "Respect the privacy of others." << endl;
-    cout << "Think before you type." << endl;
-    cout << "With great power comes great responsibility." << endl;
+    cout << endl;
+    cout << "       (1)Respect the privacy of others." << endl;
+    cout << "       (2)Think before you type." << endl;
+    cout << "       (3)With great power comes great responsibility." << endl;
 }
 
 std::string getInput(const std::string& prompt) {
@@ -80,7 +81,7 @@ std::string getInput(const std::string& prompt) {
 }
 
 void PrintLineUser(const UserGroup& usr) {
-    cout <<"Name:" << usr.GetName() <<"ID" << usr.GetUid() << endl;
+    cout <<"Name:" << usr.GetName() <<" ID:" << usr.GetUid() << endl;
     if (usr.GetRule() == RULE_ADMIN) {
         cout << "Administrator account." << endl;
     }
